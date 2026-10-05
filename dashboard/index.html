@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Monitoramento em Tempo Real</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #222;
+        }
+
+        header {
+            background: #111827;
+            color: white;
+            padding: 25px 40px;
+        }
+
+        header h1 {
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: #cbd5e1;
+        }
+
+        .status {
+            margin-top: 12px;
+            display: inline-block;
+            background: #166534;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        main {
+            padding: 30px 40px;
+        }
+
+        .titulo-secao {
+            margin-bottom: 20px;
+            margin-top: 30px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .card p {
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .card h2 {
+            font-size: 28px;
+        }
+
+        .grafico-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .tabela-container {
+            background: white;
+            border-radius: 10px;
+            overflow-x: auto;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #1f2937;
+            color: white;
+            text-align: left;
+            padding: 14px;
+        }
+
+        td {
+            padding: 14px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tr:hover {
+            background: #f8fafc;
+        }
+
+        .normal {
+            color: #15803d;
+            font-weight: bold;
+        }
+
+        .alerta {
+            color: #dc2626;
+            font-weight: bold;
+        }
+
+        .aviso {
+            color: #d97706;
+            font-weight: bold;
+        }
+
+        footer {
+            text-align: center;
+            padding: 25px;
+            color: #777;
+            font-size: 14px;
+        }
+
+        @media (max-width: 900px) {
+            .cards {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .cards {
+                grid-template-columns: 1fr;
+            }
+
+            main {
+                padding: 20px;
+            }
+
+            header {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>Monitoramento de Veículos</h1>
+        <p>Dados de telemetria em tempo real</p>
+
+        <div class="status">
+            ● Sistema online
+        </div>
+    </header>
+
+    <main>
+
+        <h2 class="titulo-secao">Visão geral</h2>
+
+        <div class="cards">
+
+            <div class="card">
+                <p>Total de eventos</p>
+                <h2 id="total-eventos">0</h2>
+            </div>
+
+            <div class="card">
+                <p>Total de alertas</p>
+                <h2 id="total-alertas">0</h2>
+            </div>
+
+            <div class="card">
+                <p>Veículos monitorados</p>
+                <h2 id="total-veiculos">0</h2>
+            </div>
+
+            <div class="card">
+                <p>Velocidade média</p>
+                <h2 id="velocidade-media">0 km/h</h2>
+            </div>
+
+            <div class="card">
+                <p>Maior velocidade</p>
+                <h2 id="maior-velocidade">0 km/h</h2>
+            </div>
+
+            <div class="card">
+                <p>Temperatura média</p>
+                <h2 id="temperatura-media">0 °C</h2>
+            </div>
+
+        </div>
+
+
+        <h2 class="titulo-secao">Velocidade dos últimos eventos</h2>
+
+        <div class="grafico-container">
+            <canvas id="graficoVelocidade"></canvas>
+        </div>
+
+
+        <h2 class="titulo-secao">Últimos eventos</h2>
+
+        <div class="tabela-container">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Veículo</th>
+                        <th>Velocidade</th>
+                        <th>Temperatura</th>
+                        <th>Combustível</th>
+                        <th>Status</th>
+                        <th>Data / Hora</th>
+                    </tr>
+                </thead>
+
+                <tbody id="eventos">
+                    <tr>
+                        <td colspan="6">Aguardando dados...</td>
+                    </tr>
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <h2 class="titulo-secao">Alertas recentes</h2>
+
+        <div class="tabela-container">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Veículo</th>
+                        <th>Tipo de alerta</th>
+                        <th>Valor</th>
+                        <th>Data / Hora</th>
+                    </tr>
+                </thead>
+
+                <tbody id="alertas">
+                    <tr>
+                        <td colspan="4">Aguardando alertas...</td>
+                    </tr>
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </main>
+
+
+    <footer>
+        Plataforma de telemetria em tempo real
+    </footer>
+
+
+    <script>
+
+        const contextoGrafico =
+            document.getElementById("graficoVelocidade")
+
+
+        const graficoVelocidade = new Chart(contextoGrafico, {
+
+            type: "line",
+
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: "Velocidade km/h",
+                        data: [],
+                        tension: 0.3
+                    }
+                ]
+            },
+
+            options: {
+                responsive: true,
+
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+
+        })
+
+
+        async function carregarResumo() {
+
+            try {
+
+                const resposta = await fetch(
+                    "http://127.0.0.1:8001/resumo"
+                )
+
+                const resumo = await resposta.json()
+
+
+                document.getElementById("total-eventos").innerText =
+                    resumo.total_eventos
+
+
+                document.getElementById("total-alertas").innerText =
+                    resumo.total_alertas
+
+
+                document.getElementById("total-veiculos").innerText =
+                    resumo.total_veiculos
+
+
+                document.getElementById("velocidade-media").innerText =
+                    resumo.velocidade_media + " km/h"
+
+
+                document.getElementById("maior-velocidade").innerText =
+                    resumo.maior_velocidade + " km/h"
+
+
+                document.getElementById("temperatura-media").innerText =
+                    resumo.temperatura_media + " °C"
+
+            }
+
+            catch (erro) {
+
+                console.log(
+                    "Erro ao carregar resumo:",
+                    erro
+                )
+
+            }
+
+        }
+
+
+        async function carregarEventos() {
+
+            try {
+
+                const resposta = await fetch(
+                    "http://127.0.0.1:8001/eventos"
+                )
+
+                const eventos = await resposta.json()
+
+                const tabela =
+                    document.getElementById("eventos")
+
+                tabela.innerHTML = ""
+
+
+                eventos.forEach(evento => {
+
+                    const velocidade =
+                        Number(evento.velocidade)
+
+                    const temperatura =
+                        Number(evento.temperatura_motor)
+
+                    const combustivel =
+                        Number(evento.nivel_combustivel)
+
+
+                    let status = "Normal"
+                    let classeStatus = "normal"
+
+
+                    if (velocidade > 80) {
+                        status = "Velocidade alta"
+                        classeStatus = "alerta"
+                    }
+
+
+                    if (temperatura > 100) {
+                        status = "Temperatura alta"
+                        classeStatus = "alerta"
+                    }
+
+
+                    if (combustivel < 15) {
+                        status = "Combustível baixo"
+                        classeStatus = "aviso"
+                    }
+
+
+                    tabela.innerHTML += `
+                        <tr>
+
+                            <td>
+                                <strong>${evento.veiculo_id}</strong>
+                            </td>
+
+                            <td>
+                                ${velocidade.toFixed(2)} km/h
+                            </td>
+
+                            <td>
+                                ${temperatura.toFixed(2)} °C
+                            </td>
+
+                            <td>
+                                ${combustivel.toFixed(2)}%
+                            </td>
+
+                            <td class="${classeStatus}">
+                                ${status}
+                            </td>
+
+                            <td>
+                                ${evento.data_hora}
+                            </td>
+
+                        </tr>
+                    `
+                })
+
+
+                atualizarGrafico(eventos)
+
+            }
+
+            catch (erro) {
+
+                console.log(
+                    "Erro ao carregar eventos:",
+                    erro
+                )
+
+            }
+
+        }
+
+
+        function atualizarGrafico(eventos) {
+
+            const eventosOrdenados =
+                [...eventos].reverse()
+
+
+            graficoVelocidade.data.labels =
+                eventosOrdenados.map(
+                    evento => evento.veiculo_id
+                )
+
+
+            graficoVelocidade.data.datasets[0].data =
+                eventosOrdenados.map(
+                    evento => Number(evento.velocidade)
+                )
+
+
+            graficoVelocidade.update()
+
+        }
+
+
+        async function carregarAlertas() {
+
+            try {
+
+                const resposta = await fetch(
+                    "http://127.0.0.1:8001/alertas"
+                )
+
+                const alertas = await resposta.json()
+
+                const tabela =
+                    document.getElementById("alertas")
+
+                tabela.innerHTML = ""
+
+
+                alertas.forEach(alerta => {
+
+                    let nomeAlerta =
+                        alerta.tipo_alerta
+
+
+                    if (alerta.tipo_alerta === "velocidade_alta") {
+                        nomeAlerta = "Velocidade alta"
+                    }
+
+
+                    if (alerta.tipo_alerta === "temperatura_alta") {
+                        nomeAlerta = "Temperatura alta"
+                    }
+
+
+                    if (alerta.tipo_alerta === "combustivel_baixo") {
+                        nomeAlerta = "Combustível baixo"
+                    }
+
+
+                    tabela.innerHTML += `
+                        <tr>
+
+                            <td>
+                                <strong>${alerta.veiculo_id}</strong>
+                            </td>
+
+                            <td class="alerta">
+                                ${nomeAlerta}
+                            </td>
+
+                            <td>
+                                ${Number(alerta.valor).toFixed(2)}
+                            </td>
+
+                            <td>
+                                ${alerta.data_hora}
+                            </td>
+
+                        </tr>
+                    `
+                })
+
+            }
+
+            catch (erro) {
+
+                console.log(
+                    "Erro ao carregar alertas:",
+                    erro
+                )
+
+            }
+
+        }
+
+
+        carregarResumo()
+        carregarEventos()
+        carregarAlertas()
+
+
+        setInterval(() => {
+
+            carregarResumo()
+            carregarEventos()
+            carregarAlertas()
+
+        }, 2000)
+
+    </script>
+
+</body>
+
+</html>
